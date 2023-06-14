@@ -52,10 +52,11 @@ export class UsersService {
   }
 
   async updateUserToBoss(
-    userId,
+    bossForUserId: string,
     userToBossId: string,
     admin: IUser,
   ): Promise<string> {
+    let bossForUserToBoss;
     try {
       const userToBoss = await this.userModel
         .find({
@@ -67,9 +68,74 @@ export class UsersService {
       if (userToBoss.length === 0) {
         return 'User not found';
       }
+
+      bossForUserToBoss = userToBoss[0]['boss_id'];
     } catch (e) {
-      return 'User not found CATCH';
+      return 'User not found';
     }
+
+    const usersHaveBoss = await this.userModel
+      .find({
+        boss_id: bossForUserToBoss,
+      })
+      .exec();
+
+    if (usersHaveBoss.length === 1) {
+      await this.userModel.updateOne(
+        {
+          _id: bossForUserToBoss,
+        },
+        {
+          role: ERole.regular,
+          boss_id: null,
+        },
+      );
+    }
+
+    let previousBossForUserId;
+    try {
+      const findUserForUpdateBoss = await this.userModel
+        .find({
+          _id: bossForUserId,
+        })
+        .exec();
+
+      if (findUserForUpdateBoss.length === 0) {
+        return 'User for update not found';
+      }
+
+      previousBossForUserId = findUserForUpdateBoss[0]['boss_id'];
+    } catch (e) {
+      return 'User for update not found';
+    }
+
+    const findPreviousBossInUsers = await this.userModel
+      .find({
+        boss_id: previousBossForUserId,
+      })
+      .exec();
+
+    if (findPreviousBossInUsers.length === 1) {
+      await this.userModel.updateOne(
+        {
+          _id: previousBossForUserId,
+        },
+        {
+          role: ERole.regular,
+          boss_id: null,
+        },
+      );
+    }
+
+    await this.userModel
+      .updateOne(
+        {
+          _id: bossForUserId,
+          role: ERole.regular,
+        },
+        { boss_id: userToBossId },
+      )
+      .exec();
 
     await this.userModel
       .updateOne(
@@ -78,7 +144,7 @@ export class UsersService {
       )
       .exec();
 
-    return 'User update';
+    return 'User updated to boss';
   }
 
   async createUser(body: CreateUserDto) {
