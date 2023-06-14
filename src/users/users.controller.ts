@@ -13,7 +13,6 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './users.dto';
 import { IUser } from '../interfaces';
 import { JwtAuthGuard } from '../auth/auth.guards/access.guard';
-import { IsUppercase } from 'class-validator';
 
 @Controller('users')
 export class UsersController {
