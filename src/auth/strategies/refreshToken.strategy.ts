@@ -1,10 +1,10 @@
-import { HttpStatus, Injectable, Req, Res } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { IToken } from '../../interfaces/tokens.interface';
+import { IToken } from '../../interfaces';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(

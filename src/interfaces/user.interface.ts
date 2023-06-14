@@ -4,6 +4,8 @@ export interface IUser extends Document {
   name?: string;
   email?: string;
   password?: string;
+  role?: string;
+  boss_id?: string;
 }
 
 export interface Payload {

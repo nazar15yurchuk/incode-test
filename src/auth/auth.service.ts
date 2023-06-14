@@ -1,11 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { Model } from 'mongoose';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { sign } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
-import { IUser, Payload } from '../interfaces/user.interface';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { IToken } from '../interfaces/tokens.interface';
+
+import { IUser, Payload } from '../interfaces';
+import { UsersService } from '../users';
+import { IToken } from '../interfaces';
+import { LoginDto, RegisterDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -14,16 +16,55 @@ export class AuthService {
     @InjectModel('Tokens') private readonly tokenModel: Model<IToken>,
   ) {}
 
-  async compareHash(password: string, hash: string) {
-    return bcrypt.compare(password.toString(), hash);
+  async login(body: LoginDto) {
+    const user = await this.usersService.findEmail(body.email);
+    if (!user) {
+      throw new HttpException(
+        'Email or password is incorrect',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    if (await this.compareHash(body.password, user.password)) {
+      const payload = {
+        email: user.email,
+      };
+      const tokens = await this.signTokens(payload, user);
+
+      return { tokens };
+    }
+    throw new HttpException(
+      'Email or password is incorrect',
+      HttpStatus.UNAUTHORIZED,
+    );
   }
 
-  async signPayload(payload, user: IUser) {
+  async register(body: RegisterDto) {
+    let findEmail;
+    try {
+      findEmail = await this.usersService.findEmail(body.email);
+    } catch (e) {
+      throw new Error(e.message);
+    }
+    if (findEmail) {
+      throw new HttpException(
+        'User with this email is already exists',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    await this.usersService.registerUser({
+      name: body.name || body.email,
+      email: body.email,
+      password: body.password,
+    });
+    return 'User created';
+  }
+
+  async signTokens(payload, user: IUser) {
     const access_token = sign(payload, process.env.ACCESS_SECRET, {
       expiresIn: '15m',
     });
     const refresh_token = sign(payload, process.env.REFRESH_TOKEN, {
-      expiresIn: '30d',
+      expiresIn: '7d',
     });
 
     await this.tokenModel.create({
@@ -34,7 +75,22 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
+  async compareHash(password: string, hash: string) {
+    return bcrypt.compare(password.toString(), hash);
+  }
+
   async validateUser(payload: Payload) {
     return await this.usersService.findEmail(payload.email);
+  }
+
+  async refresh(user: IUser) {
+    const tokens = await this.signTokens(
+      {
+        id: user._id,
+        email: user.email,
+      },
+      user,
+    );
+    return { ...tokens };
   }
 }

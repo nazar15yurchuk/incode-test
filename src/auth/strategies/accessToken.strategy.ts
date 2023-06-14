@@ -3,7 +3,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as dotenv from 'dotenv';
-import { Payload } from '../../interfaces/user.interface';
+import { Payload } from '../../interfaces';
 dotenv.config();
 
 @Injectable()
