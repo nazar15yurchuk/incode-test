@@ -1,8 +1,8 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { AuthService } from '../auth.service';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as dotenv from 'dotenv';
+import { AuthService } from '../auth.service';
 import { Payload } from '../../interfaces';
 dotenv.config();
 

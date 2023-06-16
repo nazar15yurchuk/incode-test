@@ -12,7 +12,8 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './users.dto';
 import { IUser } from '../interfaces';
-import { JwtAuthGuard } from '../auth/auth.guards/access.guard';
+import { JwtAuthGuard } from '../auth/auth.guards';
+import { IRequest } from '../interfaces';
 
 @Controller('users')
 export class UsersController {
@@ -20,7 +21,7 @@ export class UsersController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async getAllUsers(@Req() req: any): Promise<IUser[]> {
+  async getAllUsers(@Req() req: IRequest): Promise<IUser[]> {
     const user = req.user;
     return await this.usersService.getAllUsers(user);
   }
@@ -28,7 +29,7 @@ export class UsersController {
   @Put('/:bossId')
   @UseGuards(JwtAuthGuard)
   async chooseBoss(
-    @Req() req: any,
+    @Req() req: IRequest,
     @Param('bossId') bossId: string,
   ): Promise<IUser | string> {
     const user = req.user;
@@ -38,7 +39,7 @@ export class UsersController {
   @Put('/:userId/:userToBossId')
   @UseGuards(JwtAuthGuard)
   async updateUserToBoss(
-    @Req() req: any,
+    @Req() req: IRequest,
     @Param('userId') userId: string,
     @Param('userToBossId') userToBossId: string,
   ): Promise<IUser | string> {
@@ -49,7 +50,7 @@ export class UsersController {
   @Put('changeBoss/:bossId/:userId')
   @UseGuards(JwtAuthGuard)
   async changeUserBoss(
-    @Req() req: any,
+    @Req() req: IRequest,
     @Param('bossId') bossId: string,
     @Param('userId') userId: string,
   ): Promise<string> {
@@ -60,7 +61,7 @@ export class UsersController {
   @Delete('/:userId')
   @UseGuards(JwtAuthGuard)
   async deleteUser(
-    @Req() req: any,
+    @Req() req: IRequest,
     @Res() res: any,
     @Param('userId') userId: string,
   ): Promise<void> {
@@ -73,7 +74,7 @@ export class UsersController {
   @Put('/:userId')
   @UseGuards(JwtAuthGuard)
   async updateUser(
-    @Req() req: any,
+    @Req() req: IRequest,
     @Param('userId') userId: string,
     @Body() body: CreateUserDto,
   ): Promise<void> {

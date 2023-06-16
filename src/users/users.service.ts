@@ -12,6 +12,7 @@ import { ERole } from '../common/enums/role.enum';
 export class UsersService {
   constructor(@InjectModel('User') private readonly userModel: Model<IUser>) {}
 
+  // this function allows you to get users, depending on the role of the login user
   async getAllUsers(user: IUser): Promise<IUser[]> {
     if (user.role === ERole.admin) {
       return this.userModel.find();
@@ -26,6 +27,7 @@ export class UsersService {
     }
   }
 
+  // this function allows regular users to choose their boss when logging in
   async chooseBoss(user: IUser, bossId: string): Promise<IUser | string> {
     try {
       const findBoss = await this.userModel
@@ -54,6 +56,7 @@ export class UsersService {
     return 'User updated';
   }
 
+  // this function allows a boss to bind his subordinates to another boss
   async changeUserBoss(
     bossId: string,
     userId: string,
@@ -121,6 +124,7 @@ export class UsersService {
     return 'User`s boss was updated';
   }
 
+  // this function allows an admin to change a regular user to a boss
   async updateUserToBoss(
     bossForUserId: string,
     userToBossId: string,
@@ -220,6 +224,7 @@ export class UsersService {
     return 'User updated to boss';
   }
 
+  // register users
   async registerUser(body: RegisterDto) {
     const passwordHash = await this.hashPassword(body.password);
     return this.userModel.create({ ...body, password: passwordHash });
@@ -229,6 +234,7 @@ export class UsersService {
     return bcrypt.hash(password, 10);
   }
 
+  // this function allows admin to delete users
   async deleteUser(userId: string, user: IUser): Promise<void> {
     if (user.role === ERole.admin) {
       await this.userModel.deleteOne({
@@ -242,6 +248,7 @@ export class UsersService {
     }
   }
 
+  // this function allows admin to update users according to any parameters
   async updateUser(
     userId: string,
     body: CreateUserDto,

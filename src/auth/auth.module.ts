@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { UsersModule } from '../users';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AccessTokenStrategy, RefreshTokenStrategy } from './strategies';
-import { JwtModule, JwtService } from '@nestjs/jwt';
 
 import * as dotenv from 'dotenv';
 import { PassportModule } from '@nestjs/passport';

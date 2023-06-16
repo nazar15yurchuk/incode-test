@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto';
 import { IUser } from '../interfaces';
-import { RefreshGuard } from './auth.guards/refresh.guard';
+import { RefreshGuard } from './auth.guards';
 
 @Controller('auth')
 export class AuthController {

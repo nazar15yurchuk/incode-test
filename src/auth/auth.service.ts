@@ -16,6 +16,7 @@ export class AuthService {
     @InjectModel('Tokens') private readonly tokenModel: Model<IToken>,
   ) {}
 
+  // login user
   async login(body: LoginDto) {
     const user = await this.usersService.findEmail(body.email);
     if (!user) {
@@ -38,6 +39,7 @@ export class AuthService {
     );
   }
 
+  // register user
   async register(body: RegisterDto) {
     let findEmail;
     try {
@@ -59,6 +61,7 @@ export class AuthService {
     return 'User created';
   }
 
+  // register jwt tokens
   async signTokens(payload, user: IUser) {
     const access_token = sign(payload, process.env.ACCESS_SECRET, {
       expiresIn: '15m',
@@ -75,6 +78,7 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
+  // compare password
   async compareHash(password: string, hash: string) {
     return bcrypt.compare(password.toString(), hash);
   }
@@ -83,6 +87,7 @@ export class AuthService {
     return await this.usersService.findEmail(payload.email);
   }
 
+  // refresh
   async refresh(user: IUser) {
     const tokens = await this.signTokens(
       {
