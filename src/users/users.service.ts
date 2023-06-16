@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 
@@ -12,18 +12,18 @@ import { ERole } from '../common/enums/role.enum';
 export class UsersService {
   constructor(@InjectModel('User') private readonly userModel: Model<IUser>) {}
 
-  async getAllUsers(): Promise<IUser[]> {
-    return this.userModel.find();
-  }
-
-  async getAllBosses(): Promise<IUser[]> {
-    return this.userModel.find({
-      role: ERole.boss,
-    });
-  }
-
-  async getUserById(userId: string): Promise<IUser> {
-    return this.userModel.findOne({ _id: userId });
+  async getAllUsers(user: IUser): Promise<IUser[]> {
+    if (user.role === ERole.admin) {
+      return this.userModel.find();
+    } else if (user.role === ERole.boss) {
+      return this.userModel.find({
+        $or: [{ _id: user._id }, { boss_id: user._id }],
+      });
+    } else if (user.role === ERole.regular) {
+      return this.userModel.find({
+        _id: user._id,
+      });
+    }
   }
 
   async chooseBoss(user: IUser, bossId: string): Promise<IUser | string> {
@@ -43,19 +43,95 @@ export class UsersService {
     }
 
     if (user.boss_id !== null) {
-      return 'You have a boss already';
+      throw new HttpException(
+        { message: 'You have a boss already' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
-    await user.updateOne({ boss_id: bossId }).exec();
+    await user.updateOne({ boss_id: bossId });
 
     return 'User updated';
+  }
+
+  async changeUserBoss(
+    bossId: string,
+    userId: string,
+    user: IUser,
+  ): Promise<string> {
+    const checkIfLoggedUserIsBoss = await this.userModel
+      .find({
+        _id: user._id,
+        role: ERole.boss,
+      })
+      .exec();
+
+    if (checkIfLoggedUserIsBoss.length === 0) {
+      throw new HttpException(
+        { message: 'You are not a boss' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const checkIfBossIdIsBoss = await this.userModel
+      .find({
+        _id: bossId,
+        role: ERole.boss,
+      })
+      .exec();
+
+    if (checkIfBossIdIsBoss.length === 0) {
+      throw new HttpException(
+        { message: 'The user you want to make boss for user is not the boss' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const arrayOfSubordinates = await this.userModel
+      .find({
+        boss_id: user._id,
+      })
+      .exec();
+
+    if (arrayOfSubordinates.length < 2) {
+      throw new HttpException(
+        { message: 'You can not give your single subordinate out' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const findUser = await this.userModel
+        .updateOne(
+          {
+            _id: userId,
+            boss_id: user._id,
+          },
+          {
+            boss_id: bossId,
+          },
+        )
+        .exec();
+      if (findUser.modifiedCount === 0) {
+        return 'This user is not your subordinate or user not found';
+      }
+    } catch (e) {
+      return 'User not found';
+    }
+
+    return 'User`s boss was updated';
   }
 
   async updateUserToBoss(
     bossForUserId: string,
     userToBossId: string,
-    admin: IUser,
+    user: IUser,
   ): Promise<string> {
+    if (user.role !== ERole.admin) {
+      throw new HttpException(
+        { message: 'You are not admin' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     let bossForUserToBoss;
     try {
       const userToBoss = await this.userModel
@@ -138,17 +214,10 @@ export class UsersService {
       .exec();
 
     await this.userModel
-      .updateOne(
-        { _id: userToBossId },
-        { role: ERole.boss, boss_id: admin._id },
-      )
+      .updateOne({ _id: userToBossId }, { role: ERole.boss, boss_id: user._id })
       .exec();
 
     return 'User updated to boss';
-  }
-
-  async createUser(body: CreateUserDto) {
-    return this.userModel.create({ ...body });
   }
 
   async registerUser(body: RegisterDto) {
@@ -160,14 +229,32 @@ export class UsersService {
     return bcrypt.hash(password, 10);
   }
 
-  async deleteUser(userId: string) {
-    await this.userModel.deleteOne({
-      _id: userId,
-    });
+  async deleteUser(userId: string, user: IUser): Promise<void> {
+    if (user.role === ERole.admin) {
+      await this.userModel.deleteOne({
+        _id: userId,
+      });
+    } else {
+      throw new HttpException(
+        { message: 'You are not admin' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
-  async updateUser(userId: string, body: CreateUserDto) {
-    await this.userModel.updateOne({ _id: userId }, body);
+  async updateUser(
+    userId: string,
+    body: CreateUserDto,
+    user: IUser,
+  ): Promise<void> {
+    if (user.role === ERole.admin) {
+      await this.userModel.updateOne({ _id: userId }, body);
+    } else {
+      throw new HttpException(
+        { message: 'You are not admin' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   async findEmail(userEmail: string) {
